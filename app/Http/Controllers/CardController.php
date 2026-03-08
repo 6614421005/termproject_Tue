@@ -10,17 +10,20 @@ class CardController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * (Guest และ User เข้าดูได้ปกติ)
      */
-    public function index()
+    public function index(Request $request)
     {
         $cards = Card::latest()->get();
+
+        if ($request->is('api/*')) {
+            return response()->json($cards, 200);
+        }
+
         return view('cards.index', compact('cards'));
     }
 
     /**
      * Show the form for creating a new resource.
-     * (ต้อง Login เท่านั้น - คุมโดย web.php)
      */
     public function create()
     {
@@ -29,7 +32,6 @@ class CardController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * (ต้อง Login เท่านั้น - คุมโดย web.php)
      */
     public function store(Request $request)
     {
@@ -56,39 +58,43 @@ class CardController extends Controller
             $data['image_path'] = $request->file('image_upload')->store('cards', 'public');
         }
 
-        Card::create($data);
+        $card = Card::create($data);
+
+        if ($request->is('api/*')) {
+            return response()->json([
+                'message' => 'Created successfully',
+                'data' => $card
+            ], 201);
+        }
 
         return redirect()->route('cards.index')->with('success', 'บันทึกข้อมูลการ์ดสำเร็จ');
     }
 
     /**
      * Display the specified resource.
-     * (Guest และ User เข้าดูได้ปกติ)
      */
-    public function show(string $id)
+    public function show(Request $request, Card $card)
     {
-        $card = Card::findOrFail($id);
+        if ($request->is('api/*')) {
+            return response()->json($card, 200);
+        }
+
         return view('cards.show', compact('card'));
     }
 
     /**
      * Show the form for editing the specified resource.
-     * (ต้อง Login เท่านั้น - คุมโดย web.php)
      */
-    public function edit(string $id)
+    public function edit(Card $card)
     {
-        $card = Card::findOrFail($id);
         return view('cards.edit', compact('card'));
     }
 
     /**
      * Update the specified resource in storage.
-     * (ต้อง Login เท่านั้น - คุมโดย web.php)
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Card $card)
     {
-        $card = Card::findOrFail($id);
-
         $data = $request->validate([
             'card_name' => 'required|string|max:255',
             'game_system' => 'required|string',
@@ -109,6 +115,7 @@ class CardController extends Controller
         ]);
 
         if ($request->hasFile('image_upload')) {
+            // ลบรูปภาพเก่าออกถ้ามีการอัปโหลดรูปใหม่
             if ($card->image_path) {
                 Storage::disk('public')->delete($card->image_path);
             }
@@ -117,23 +124,34 @@ class CardController extends Controller
 
         $card->update($data);
 
+        if ($request->is('api/*')) {
+            return response()->json([
+                'message' => 'Updated successfully',
+                'data' => $card
+            ], 200);
+        }
+
         return redirect()->route('cards.show', $card->id)
                          ->with('success', 'อัปเดตข้อมูลสำเร็จ!');
     }
 
     /**
      * Remove the specified resource from storage.
-     * (ต้อง Login เท่านั้น - คุมโดย web.php)
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, Card $card)
     {
-        $card = Card::findOrFail($id);
-        
+        // ลบรูปภาพออกจาก Storage
         if ($card->image_path) {
             Storage::disk('public')->delete($card->image_path);
         }
         
         $card->delete();
+
+        if ($request->is('api/*')) {
+            return response()->json([
+                'message' => 'Deleted successfully'
+            ], 200);
+        }
 
         return redirect()->route('cards.index')->with('success', 'ลบข้อมูลการ์ดเรียบร้อยแล้ว');
     }
