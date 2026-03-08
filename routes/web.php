@@ -26,3 +26,4 @@ Route::middleware(['auth'])->group(function () {
 Route::resource('cards', CardController::class)->only(['index', 'show']);
 
 require __DIR__.'/auth.php';
+require __DIR__.'/settings.php';
